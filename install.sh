@@ -192,6 +192,20 @@ if [ "${pre_installed["chirpstack"]}" -eq 0 ]; then
     installed_by_script+=("chirpstack")
 fi
 
+# Step 11a: Start ChirpStack service
+echo "Starting ChirpStack service..."
+if ! sudo systemctl start chirpstack; then
+    echo "Failed to start ChirpStack service."
+    ask_continue
+fi
+
+# Step 11b: Enable ChirpStack service on boot
+echo "Enabling ChirpStack service to start on boot..."
+if ! sudo systemctl enable chirpstack; then
+    echo "Failed to enable ChirpStack on boot."
+    ask_continue
+fi
+
 # Step 12: Install ChirpStack REST API
 echo "Installing ChirpStack REST API..."
 if ! sudo apt-get install -y chirpstack-rest-api; then
