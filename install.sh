@@ -105,10 +105,16 @@ for pkg in apt-transport-https dirmngr; do
     fi
 done
 
-# Step 4: Setup ChirpStack repository key
+# Step 4: Setup ChirpStack repository key and add repository list
 echo "Adding ChirpStack repository key..."
 if ! sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1CE2AFD36DBCCA00; then
     echo "Failed to add ChirpStack key."
+    ask_continue
+fi
+
+echo "Adding ChirpStack repository to apt sources..."
+if ! sudo sh -c 'echo "deb https://artifacts.chirpstack.io/packages/4.x/deb stable main" > /etc/apt/sources.list.d/chirpstack.list'; then
+    echo "Failed to add ChirpStack repository."
     ask_continue
 fi
 
@@ -199,7 +205,7 @@ fi
 # Step 13: Detect host IP automatically
 HOST_IP=$(hostname -I | awk '{print $1}')
 CHIRPSTACK_PORT="8080"       # Adjust this if your ChirpStack server uses a different port.
-CHIRPSTACK_REST_API="localhost:8090"
+CHIRPSTACK_REST_API_PORT="8090"
 
 # Write installation information to a text file
 echo "Writing installation information to $INFO_FILE..."
