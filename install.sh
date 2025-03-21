@@ -182,15 +182,6 @@ then
     ask_continue
 fi
 
-# Step 10b: Update /etc/chirpstack/chirpstack.toml with ChirpStack DB credentials
-echo "Updating ChirpStack configuration with DB credentials..."
-if sudo sed -i "s|^dsn = \"postgres://.*@localhost/chirpstack?sslmode=disable\"|dsn = \"postgres://${CHIRPSTACK_USER}:${CHIRPSTACK_PASSWORD}@localhost/chirpstack?sslmode=disable\"|g" /etc/chirpstack/chirpstack.toml; then
-    echo "ChirpStack configuration updated successfully."
-else
-    echo "Failed to update ChirpStack configuration file."
-    ask_continue
-fi
-
 # Step 11: Install ChirpStack
 echo "Installing ChirpStack..."
 if ! sudo apt-get install -y chirpstack; then
@@ -199,6 +190,15 @@ if ! sudo apt-get install -y chirpstack; then
 fi
 if [ "${pre_installed["chirpstack"]}" -eq 0 ]; then
     installed_by_script+=("chirpstack")
+fi
+
+# Step 11b: Update /etc/chirpstack/chirpstack.toml with ChirpStack DB credentials
+echo "Updating ChirpStack configuration with DB credentials..."
+if sudo sed -i "s|^dsn = \"postgres://.*@localhost/chirpstack?sslmode=disable\"|dsn = \"postgres://${CHIRPSTACK_USER}:${CHIRPSTACK_PASSWORD}@localhost/chirpstack?sslmode=disable\"|g" /etc/chirpstack/chirpstack.toml; then
+    echo "ChirpStack configuration updated successfully."
+else
+    echo "Failed to update ChirpStack configuration file."
+    ask_continue
 fi
 
 # Step 11a: Start ChirpStack service
