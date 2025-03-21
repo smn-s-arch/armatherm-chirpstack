@@ -172,7 +172,7 @@ fi
 # Step 10: Create ChirpStack Database and role
 echo "Creating ChirpStack database and role..."
 if ! sudo -u postgres psql <<EOF
-CREATE ROLE '${CHIRPSTACK_USER}' WITH LOGIN PASSWORD '${CHIRPSTACK_PASSWORD}';
+CREATE ROLE ${CHIRPSTACK_USER} WITH LOGIN PASSWORD '${CHIRPSTACK_PASSWORD}';
 CREATE DATABASE chirpstack OWNER '${CHIRPSTACK_USER}';
 \c chirpstack
 CREATE EXTENSION pg_trgm;
