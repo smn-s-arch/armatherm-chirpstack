@@ -172,13 +172,22 @@ fi
 # Step 10: Create ChirpStack Database and role
 echo "Creating ChirpStack database and role..."
 if ! sudo -u postgres psql <<EOF
-CREATE ROLE chirpstack WITH LOGIN PASSWORD '${CHIRPSTACK_PASSWORD}';
-CREATE DATABASE chirpstack WITH OWNER chirpstack;
+CREATE ROLE '${CHIRPSTACK_USER}' WITH LOGIN PASSWORD '${CHIRPSTACK_PASSWORD}';
+CREATE DATABASE chirpstack WITH OWNER '${CHIRPSTACK_USER}';
 \c chirpstack
 CREATE EXTENSION pg_trgm;
 EOF
 then
     echo "Database setup failed."
+    ask_continue
+fi
+
+# Step 10b: Update /etc/chirpstack/chirpstack.toml with ChirpStack DB credentials
+echo "Updating ChirpStack configuration with DB credentials..."
+if sudo sed -i "s|^dsn = \"postgres://.*@localhost/chirpstack?sslmode=disable\"|dsn = \"postgres://${CHIRPSTACK_USER}:${CHIRPSTACK_PASSWORD}@localhost/chirpstack?sslmode=disable\"|g" /etc/chirpstack/chirpstack.toml; then
+    echo "ChirpStack configuration updated successfully."
+else
+    echo "Failed to update ChirpStack configuration file."
     ask_continue
 fi
 
