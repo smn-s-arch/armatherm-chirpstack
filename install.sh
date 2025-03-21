@@ -194,8 +194,17 @@ fi
 
 # Step 11b: Update /etc/chirpstack/chirpstack.toml with ChirpStack DB credentials
 echo "Updating ChirpStack configuration with DB credentials..."
-if sudo sed -i "s|^dsn = \"postgres://.*@localhost/chirpstack?sslmode=disable\"|dsn = \"postgres://${CHIRPSTACK_USER}:${CHIRPSTACK_PASSWORD}@localhost/chirpstack?sslmode=disable\"|g" /etc/chirpstack/chirpstack.toml; then
-    echo "ChirpStack configuration updated successfully."
+NEW_DSN="postgres://${CHIRPSTACK_USER}:${CHIRPSTACK_PASSWORD}@localhost/chirpstack?sslmode=disable"
+
+# Use sed to replace the existing DSN with the new DSN
+if sudo sed -i "s|postgres://chirpstack:chirpstack@localhost/chirpstack?sslmode=disable|${NEW_DSN}|g" /etc/chirpstack/chirpstack.toml; then
+    # Check if the file now contains the new DSN string
+    if grep -q "${NEW_DSN}" /etc/chirpstack/chirpstack.toml; then
+        echo "ChirpStack configuration updated successfully."
+    else
+        echo "Error: The DSN line was not updated in the configuration file."
+        ask_continue
+    fi
 else
     echo "Failed to update ChirpStack configuration file."
     ask_continue
