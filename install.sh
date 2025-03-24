@@ -96,26 +96,26 @@ for pkg in mosquitto mosquitto-clients redis-server redis-tools postgresql; do
     fi
 done
 
-# MStep 2a: Mosquitto configuration update with error checking
+# Step 2a: Mosquitto configuration update with error checking
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Error: Mosquitto configuration file not found at $CONFIG_FILE"
     ask_continue
 fi
 
-if ! cp "$CONFIG_FILE" "$BACKUP_FILE"; then
+if ! sudo cp "$CONFIG_FILE" "$BACKUP_FILE"; then
     echo "Failed to create backup for Mosquitto configuration."
     ask_continue
 fi
 echo "Backup created: $BACKUP_FILE"
 
-if ! sed -i 's/^listener 1883\s\+.*$/listener 1883/' "$CONFIG_FILE"; then
+if ! sudo sed -i 's/^listener 1883\s\+.*$/listener 1883/' "$CONFIG_FILE"; then
     echo "Failed to update listener directive in $CONFIG_FILE."
     ask_continue
 fi
 echo "Updated listener directive to 'listener 1883'."
 
 if grep -q "^allow_ananymous" "$CONFIG_FILE"; then
-    if ! sed -i 's/^allow_ananymous.*/allow_ananymous true/' "$CONFIG_FILE"; then
+    if ! sudo sed -i 's/^allow_ananymous.*/allow_ananymous true/' "$CONFIG_FILE"; then
         echo "Failed to update allow_ananymous directive in $CONFIG_FILE."
         ask_continue
     fi
