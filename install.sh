@@ -6,9 +6,8 @@ declare -A pre_installed
 declare -a packages=("mosquitto" "mosquitto-clients" "redis-server" "redis-tools" "postgresql" "apt-transport-https" "dirmngr" "chirpstack-gateway-bridge" "chirpstack" "chirpstack-rest-api")
 CONFIG_DEST="/etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml"
 INFO_FILE="chirpstack_install_info.txt"
-# Define the Mosquitto configuration file and backup file with a timestamp
-CONFIG_FILE="/etc/mosquitto/mosquitto.conf"
-BACKUP_FILE="/etc/mosquitto/mosquitto.conf.bak_$(date +%F_%T)"
+MOSQUITTO_CONFIG_FILE="./config/armatherm-mosquitto.conf"
+MOSQUITTO_CONFIG_DEST="/etc/mosquitto/conf.d/armatherm-mosquitto.conf"
 # For rollback tracking:
 declare -a installed_by_script=()
 
@@ -96,37 +95,23 @@ for pkg in mosquitto mosquitto-clients redis-server redis-tools postgresql; do
     fi
 done
 
-# Step 2a: Mosquitto configuration update with error checking
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Error: Mosquitto configuration file not found at $CONFIG_FILE"
+# Step 2a: Place new Mosquitto configuration file
+
+if [ ! -f "$MOSQUITTO_CONFIG_FILE" ]; then
+    echo "Error: Source Mosquitto config file not found at $MOSQUITTO_CONFIG_FILE"
     ask_continue
 fi
 
-if ! sudo cp "$CONFIG_FILE" "$BACKUP_FILE"; then
-    echo "Failed to create backup for Mosquitto configuration."
+if [ ! -d "$MOSQUITTO_CONFIG_DEST" ]; then
+    echo "Error: Destination directory $MOSQUITTO_CONFIG_DEST does not exist."
     ask_continue
 fi
-echo "Backup created: $BACKUP_FILE"
 
-if ! sudo sed -i 's/^listener 1883\s\+.*$/listener 1883/' "$CONFIG_FILE"; then
-    echo "Failed to update listener directive in $CONFIG_FILE."
+if ! sudo cp "$MOSQUITTO_CONFIG_FILE" "$MOSQUITTO_CONFIG_DEST"; then
+    echo "Failed to copy $MOSQUITTO_CONFIG_FILE to $MOSQUITTO_CONFIG_DEST"
     ask_continue
 fi
-echo "Updated listener directive to 'listener 1883'."
-
-if grep -q "^allow_anonymous" "$CONFIG_FILE"; then
-    if ! sudo sed -i 's/^allow_anonymous.*/allow_anonymous true/' "$CONFIG_FILE"; then
-        echo "Failed to update allow_anonymous directive in $CONFIG_FILE."
-        ask_continue
-    fi
-    echo "Updated existing allow_anonymous directive to 'allow_anonymous true'."
-else
-    if ! sudo echo "allow_anonymous true" >> "$CONFIG_FILE"; then
-        echo "Failed to add allow_anonymous directive to $CONFIG_FILE."
-        ask_continue
-    fi
-    echo "Added 'allow_anonymous true' directive to the configuration."
-fi
+echo "Mosquitto configuration file successfully placed in $MOSQUITTO_CONFIG_DEST."
 
 if ! sudo systemctl restart mosquitto; then
     echo "Failed to restart Mosquitto service."
@@ -233,7 +218,7 @@ if [ "${pre_installed["chirpstack"]}" -eq 0 ]; then
     installed_by_script+=("chirpstack")
 fi
 
-# Step a: Update /etc/chirpstack/chirpstack.toml with ChirpStack DB credentials
+# Step 11a: Update /etc/chirpstack/chirpstack.toml with ChirpStack DB credentials
 echo "Updating ChirpStack configuration with DB credentials..."
 NEW_DSN="postgres://${CHIRPSTACK_USER}:${CHIRPSTACK_PASSWORD}@localhost/chirpstack?sslmode=disable"
 
