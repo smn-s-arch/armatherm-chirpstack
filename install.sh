@@ -7,7 +7,7 @@ declare -a packages=("mosquitto" "mosquitto-clients" "redis-server" "redis-tools
 CONFIG_DEST="/etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml"
 INFO_FILE="chirpstack_install_info.txt"
 MOSQUITTO_CONFIG_FILE="./config/armatherm-mosquitto.conf"
-MOSQUITTO_CONFIG_DEST="/etc/mosquitto/conf.d/armatherm-mosquitto.conf"
+MOSQUITTO_CONFIG_DEST="/etc/mosquitto/conf.d"
 # For rollback tracking:
 declare -a installed_by_script=()
 
@@ -107,8 +107,8 @@ if [ ! -d "$MOSQUITTO_CONFIG_DEST" ]; then
     ask_continue
 fi
 
-if ! sudo cp "$MOSQUITTO_CONFIG_FILE" "$MOSQUITTO_CONFIG_DEST"; then
-    echo "Failed to copy $MOSQUITTO_CONFIG_FILE to $MOSQUITTO_CONFIG_DEST"
+if ! sudo cp "$MOSQUITTO_CONFIG_FILE" "$MOSQUITTO_CONFIG_DEST/$(basename "$MOSQUITTO_CONFIG_FILE")"; then
+    echo "Failed to copy $MOSQUITTO_CONFIG_FILE to $MOSQUITTO_CONFIG_DEST/$(basename "$MOSQUITTO_CONFIG_FILE")"
     ask_continue
 fi
 echo "Mosquitto configuration file successfully placed in $MOSQUITTO_CONFIG_DEST."
