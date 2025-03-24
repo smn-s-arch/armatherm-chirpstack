@@ -236,6 +236,8 @@ else
     ask_continue
 fi
 
+sleep 5
+
 # Step 11b: Start ChirpStack service
 echo "Starting ChirpStack service..."
 if ! sudo systemctl start chirpstack; then
