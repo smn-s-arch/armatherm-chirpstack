@@ -238,13 +238,6 @@ fi
 
 sleep 5
 
-# Step 11b: Start ChirpStack service
-echo "Starting ChirpStack service..."
-if ! sudo systemctl start chirpstack; then
-    echo "Failed to start ChirpStack service."
-    ask_continue
-fi
-
 # Step 11c: Enable ChirpStack service on boot
 echo "Enabling ChirpStack service to start on boot..."
 if ! sudo systemctl enable chirpstack; then
