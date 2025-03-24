@@ -114,18 +114,18 @@ if ! sudo sed -i 's/^listener 1883\s\+.*$/listener 1883/' "$CONFIG_FILE"; then
 fi
 echo "Updated listener directive to 'listener 1883'."
 
-if grep -q "^allow_ananymous" "$CONFIG_FILE"; then
-    if ! sudo sed -i 's/^allow_ananymous.*/allow_ananymous true/' "$CONFIG_FILE"; then
-        echo "Failed to update allow_ananymous directive in $CONFIG_FILE."
+if grep -q "^allow_anonymous" "$CONFIG_FILE"; then
+    if ! sudo sed -i 's/^allow_anonymous.*/allow_anonymous true/' "$CONFIG_FILE"; then
+        echo "Failed to update allow_anonymous directive in $CONFIG_FILE."
         ask_continue
     fi
-    echo "Updated existing allow_ananymous directive to 'allow_ananymous true'."
+    echo "Updated existing allow_anonymous directive to 'allow_anonymous true'."
 else
-    if ! echo "allow_ananymous true" >> "$CONFIG_FILE"; then
-        echo "Failed to add allow_ananymous directive to $CONFIG_FILE."
+    if ! echo "allow_anonymous true" >> "$CONFIG_FILE"; then
+        echo "Failed to add allow_anonymous directive to $CONFIG_FILE."
         ask_continue
     fi
-    echo "Added 'allow_ananymous true' directive to the configuration."
+    echo "Added 'allow_anonymous true' directive to the configuration."
 fi
 
 if ! sudo systemctl restart mosquitto; then
