@@ -121,7 +121,7 @@ if grep -q "^allow_anonymous" "$CONFIG_FILE"; then
     fi
     echo "Updated existing allow_anonymous directive to 'allow_anonymous true'."
 else
-    if ! echo "allow_anonymous true" >> "$CONFIG_FILE"; then
+    if ! sudo echo "allow_anonymous true" >> "$CONFIG_FILE"; then
         echo "Failed to add allow_anonymous directive to $CONFIG_FILE."
         ask_continue
     fi
