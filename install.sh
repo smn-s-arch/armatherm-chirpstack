@@ -6,6 +6,9 @@ declare -A pre_installed
 declare -a packages=("mosquitto" "mosquitto-clients" "redis-server" "redis-tools" "postgresql" "apt-transport-https" "dirmngr" "chirpstack-gateway-bridge" "chirpstack" "chirpstack-rest-api")
 CONFIG_DEST="/etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml"
 INFO_FILE="chirpstack_install_info.txt"
+# Define the configuration file and backup file with a timestamp for mosquitto
+CONFIG_FILE="/etc/mosquitto/mosquitto.conf"
+BACKUP_FILE="/etc/mosquitto/mosquitto.conf.bak_$(date +%F_%T)"
 # For rollback tracking:
 declare -a installed_by_script=()
 
@@ -92,6 +95,35 @@ for pkg in mosquitto mosquitto-clients redis-server redis-tools postgresql; do
         installed_by_script+=("$pkg")
     fi
 done
+
+# Step 2a: Mosquitto configuration
+# Check if the configuration file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: Mosquitto configuration file not found at $CONFIG_FILE"
+    exit 1
+fi
+
+# Create a backup of the file
+cp "$CONFIG_FILE" "$BACKUP_FILE"
+echo "Backup created: $BACKUP_FILE"
+
+# Replace any 'listener 1883 <ip>' entry with just 'listener 1883'
+# This regex looks for lines that start with 'listener 1883' followed by one or more spaces and any characters.
+sed -i 's/^listener 1883\s\+.*$/listener 1883/' "$CONFIG_FILE"
+echo "Updated listener directive to 'listener 1883'."
+
+# Check if 'allow_ananymous' is already in the file.
+# If found, update the line; if not, append it at the end.
+if grep -q "^allow_ananymous" "$CONFIG_FILE"; then
+    sed -i 's/^allow_ananymous.*/allow_ananymous true/' "$CONFIG_FILE"
+    echo "Updated existing allow_ananymous directive to 'allow_ananymous true'."
+else
+    echo "allow_ananymous true" >> "$CONFIG_FILE"
+    echo "Added 'allow_ananymous true' directive to the configuration."
+fi
+
+# Restart the mosquitto service
+sudo systemctl restart mosquitto && echo "Mosquitto service restarted."
 
 # Step 3: Check and install apt-transport-https and dirmngr if not present
 echo "Checking and installing apt-transport-https and dirmngr..."
@@ -192,14 +224,14 @@ if [ "${pre_installed["chirpstack"]}" -eq 0 ]; then
     installed_by_script+=("chirpstack")
 fi
 
-# Step 11b: Update /etc/chirpstack/chirpstack.toml with ChirpStack DB credentials
+# Step a: Update /etc/chirpstack/chirpstack.toml with ChirpStack DB credentials
 echo "Updating ChirpStack configuration with DB credentials..."
 NEW_DSN="postgres://${CHIRPSTACK_USER}:${CHIRPSTACK_PASSWORD}@localhost/chirpstack?sslmode=disable"
 
 # Use sed to replace the existing DSN with the new DSN
 if sudo sed -i "s|postgres://chirpstack:chirpstack@localhost/chirpstack?sslmode=disable|${NEW_DSN}|g" /etc/chirpstack/chirpstack.toml; then
     # Check if the file now contains the new DSN string
-    if grep -q "${NEW_DSN}" /etc/chirpstack/chirpstack.toml; then
+    if sudo grep -q "${NEW_DSN}" /etc/chirpstack/chirpstack.toml; then
         echo "ChirpStack configuration updated successfully."
     else
         echo "Error: The DSN line was not updated in the configuration file."
@@ -210,14 +242,14 @@ else
     ask_continue
 fi
 
-# Step 11a: Start ChirpStack service
+# Step 11b: Start ChirpStack service
 echo "Starting ChirpStack service..."
 if ! sudo systemctl start chirpstack; then
     echo "Failed to start ChirpStack service."
     ask_continue
 fi
 
-# Step 11b: Enable ChirpStack service on boot
+# Step 11c: Enable ChirpStack service on boot
 echo "Enabling ChirpStack service to start on boot..."
 if ! sudo systemctl enable chirpstack; then
     echo "Failed to enable ChirpStack on boot."
