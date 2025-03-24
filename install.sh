@@ -6,7 +6,7 @@ declare -A pre_installed
 declare -a packages=("mosquitto" "mosquitto-clients" "redis-server" "redis-tools" "postgresql" "apt-transport-https" "dirmngr" "chirpstack-gateway-bridge" "chirpstack" "chirpstack-rest-api")
 CONFIG_DEST="/etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml"
 INFO_FILE="chirpstack_install_info.txt"
-# Define the configuration file and backup file with a timestamp for mosquitto
+# Define the Mosquitto configuration file and backup file with a timestamp
 CONFIG_FILE="/etc/mosquitto/mosquitto.conf"
 BACKUP_FILE="/etc/mosquitto/mosquitto.conf.bak_$(date +%F_%T)"
 # For rollback tracking:
@@ -76,7 +76,7 @@ read -rs -rp "Enter ChirpStack DB password: " CHIRPSTACK_PASSWORD
 echo ""
 echo "Credentials received."
 
-# Step 2: Install requirements packages
+# Step 2: Install required packages (basic ones)
 echo "Updating package cache..."
 if ! sudo apt-get update; then
     echo "apt-get update failed."
@@ -96,34 +96,43 @@ for pkg in mosquitto mosquitto-clients redis-server redis-tools postgresql; do
     fi
 done
 
-# Step 2a: Mosquitto configuration
-# Check if the configuration file exists
+# MStep 2a: Mosquitto configuration update with error checking
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Error: Mosquitto configuration file not found at $CONFIG_FILE"
-    exit 1
+    ask_continue
 fi
 
-# Create a backup of the file
-cp "$CONFIG_FILE" "$BACKUP_FILE"
+if ! cp "$CONFIG_FILE" "$BACKUP_FILE"; then
+    echo "Failed to create backup for Mosquitto configuration."
+    ask_continue
+fi
 echo "Backup created: $BACKUP_FILE"
 
-# Replace any 'listener 1883 <ip>' entry with just 'listener 1883'
-# This regex looks for lines that start with 'listener 1883' followed by one or more spaces and any characters.
-sed -i 's/^listener 1883\s\+.*$/listener 1883/' "$CONFIG_FILE"
+if ! sed -i 's/^listener 1883\s\+.*$/listener 1883/' "$CONFIG_FILE"; then
+    echo "Failed to update listener directive in $CONFIG_FILE."
+    ask_continue
+fi
 echo "Updated listener directive to 'listener 1883'."
 
-# Check if 'allow_ananymous' is already in the file.
-# If found, update the line; if not, append it at the end.
 if grep -q "^allow_ananymous" "$CONFIG_FILE"; then
-    sed -i 's/^allow_ananymous.*/allow_ananymous true/' "$CONFIG_FILE"
+    if ! sed -i 's/^allow_ananymous.*/allow_ananymous true/' "$CONFIG_FILE"; then
+        echo "Failed to update allow_ananymous directive in $CONFIG_FILE."
+        ask_continue
+    fi
     echo "Updated existing allow_ananymous directive to 'allow_ananymous true'."
 else
-    echo "allow_ananymous true" >> "$CONFIG_FILE"
+    if ! echo "allow_ananymous true" >> "$CONFIG_FILE"; then
+        echo "Failed to add allow_ananymous directive to $CONFIG_FILE."
+        ask_continue
+    fi
     echo "Added 'allow_ananymous true' directive to the configuration."
 fi
 
-# Restart the mosquitto service
-sudo systemctl restart mosquitto && echo "Mosquitto service restarted."
+if ! sudo systemctl restart mosquitto; then
+    echo "Failed to restart Mosquitto service."
+    ask_continue
+fi
+echo "Mosquitto service restarted."
 
 # Step 3: Check and install apt-transport-https and dirmngr if not present
 echo "Checking and installing apt-transport-https and dirmngr..."
@@ -277,7 +286,7 @@ echo "Writing installation information to $INFO_FILE..."
   echo "ChirpStack DB Username: $CHIRPSTACK_USER"
   echo "ChirpStack DB Password: $CHIRPSTACK_PASSWORD"
   echo "ChirpStack Address: ${HOST_IP}:${CHIRPSTACK_PORT}"
-  echo "ChirpStack REST API: ${CHIRPSTACK_REST_API}"
+  echo "ChirpStack REST API: ${HOST_IP}:${CHIRPSTACK_REST_API_PORT}"
 } > "$INFO_FILE"
 
 # Step 14: Final checks
