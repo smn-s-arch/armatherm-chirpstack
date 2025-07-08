@@ -133,7 +133,7 @@ done
 
 # Step 4: Setup ChirpStack repository key and add repository list
 echo "Adding ChirpStack repository key..."
-if ! sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1CE2AFD36DBCCA00; then
+if ! sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 1CE2AFD36DBCCA00; then
     echo "Failed to add ChirpStack key."
     ask_continue
 fi
